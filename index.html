@@ -380,9 +380,10 @@ const CORNERS_HTML =
 /* ==========================================================================
    Инициализация
    ========================================================================== */
-const tg = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== undefined
-  ? window.Telegram.WebApp : null;
-const inTelegram = !!(tg && tg.initData);
+const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+// Мини-аппы, открытые кнопкой клавиатуры, не получают initData,
+// поэтому среду определяем по platform: "unknown" = обычный браузер.
+const inTelegram = !!(tg && tg.platform && tg.platform !== "unknown");
 if (tg) { try { tg.ready(); tg.expand(); tg.setHeaderColor("#0e0c11"); tg.setBackgroundColor("#0e0c11"); } catch (e) {} }
 
 const params = new URLSearchParams(location.search);
