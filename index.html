@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Карты Не Врут</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: #0e0c11;
+    --bg2: #1a1420;
+    --amber: #e0a458;
+    --amber-soft: #f0c27a;
+    --teal: #3f8f86;
+    --ink: #e8e2d6;
+    --muted: #9a8f80;
+    --card-w: 86px;
+    --card-h: 136px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(120% 70% at 50% -10%, rgba(224,164,88,.10), transparent 60%),
+      radial-gradient(90% 60% at 50% 115%, rgba(63,143,134,.12), transparent 60%),
+      linear-gradient(var(--bg2), var(--bg));
+    display: flex; flex-direction: column;
+    user-select: none; -webkit-user-select: none;
+  }
+  /* виньетка и звёзды */
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 1;
+    background: radial-gradient(115% 100% at 50% 45%, transparent 60%, rgba(0,0,0,.42));
+  }
+  .star {
+    position: fixed; border-radius: 50%; background: var(--amber-soft);
+    pointer-events: none; z-index: 0; opacity: 0;
+    animation: twinkle linear infinite;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0; }
+    50% { opacity: .55; }
+  }
+
+  /* ---------- шапка ---------- */
+  header { text-align: center; padding: 14px 16px 4px; position: relative; z-index: 2; }
+  .logo {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 13px; letter-spacing: .38em; text-transform: uppercase;
+    color: var(--amber);
+    text-shadow: 0 0 18px rgba(224,164,88,.35);
+  }
+  .logo::before, .logo::after { content: " ✦ "; font-size: 8px; vertical-align: 2px; color: rgba(224,164,88,.6); }
+  .hint {
+    margin: 10px auto 0; max-width: 300px;
+    font-size: 14.5px; line-height: 1.45; color: var(--muted);
+    min-height: 42px; transition: opacity .4s;
+  }
+  .hint b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- слоты ---------- */
+  #slots {
+    display: flex; justify-content: center; gap: 14px;
+    padding: 12px 8px 4px; flex: 0 0 auto; position: relative; z-index: 2;
+  }
+  .slot { width: var(--card-w); text-align: center; }
+  .slot .well {
+    width: var(--card-w); height: var(--card-h);
+    border: 1.5px dashed rgba(224,164,88,.35); border-radius: 9px;
+    position: relative; perspective: 760px;
+    background: radial-gradient(60% 45% at 50% 50%, rgba(224,164,88,.05), transparent 70%);
+  }
+  .slot .pos {
+    margin-top: 7px; font-size: 11px; letter-spacing: .12em;
+    text-transform: uppercase; color: rgba(224,164,88,.75);
+  }
+  .slot .cardname {
+    margin-top: 3px; font-family: Georgia, serif; font-size: 12px;
+    line-height: 1.25; color: var(--ink); min-height: 30px;
+    opacity: 0; transition: opacity .5s;
+  }
+  .slot .cardname .rev-badge {
+    display: block; font-family: -apple-system, sans-serif;
+    font-size: 9.5px; letter-spacing: .08em; color: var(--teal); text-transform: uppercase;
+  }
+  .slot.filled .well { border-style: solid; border-color: rgba(224,164,88,.15); }
+
+  /* ---------- карта (общее) ---------- */
+  .card3d {
+    position: absolute; inset: 0; border-radius: 9px;
+    transform-style: preserve-3d; transition: transform .8s cubic-bezier(.4,.1,.2,1);
+  }
+  .card3d.flipped { transform: rotateY(180deg); }
+  .facet {
+    position: absolute; inset: 0; border-radius: 9px;
+    backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    overflow: hidden;
+  }
+
+  /* рубашка */
+  .back-art {
+    background: linear-gradient(160deg, #221a2d, #131018);
+    border: 1px solid rgba(224,164,88,.55);
+    box-shadow: 0 4px 14px rgba(0,0,0,.5);
+  }
+  .back-art svg.backsvg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* лицо */
+  .face-art {
+    transform: rotateY(180deg);
+    background:
+      radial-gradient(75% 55% at 50% 42%, rgba(224,164,88,.10), transparent 70%),
+      linear-gradient(165deg, #251d30, #161119);
+    border: 1px solid var(--amber);
+    box-shadow: inset 0 0 0 2px rgba(14,12,17,.9), inset 0 0 0 3px rgba(224,164,88,.28), 0 4px 20px rgba(224,164,88,.14);
+    display: flex; flex-direction: column;
+  }
+  .face-art img.art-img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; z-index: 3;
+  }
+  .face-gen { position: absolute; inset: 0; z-index: 1; }
+  .face-gen.rev { transform: rotate(180deg); }
+
+  /* угловые индексы */
+  .idx {
+    position: absolute; display: flex; flex-direction: column; align-items: center;
+    font-family: Georgia, serif; font-size: 11.5px; color: var(--amber-soft);
+    line-height: 1; gap: 2px; letter-spacing: .02em;
+  }
+  .idx svg { width: 9px; height: 9px; display: block; }
+  .idx.tl { top: 7px; left: 7px; }
+  .idx.br { bottom: 7px; right: 7px; transform: rotate(180deg); }
+
+  /* центральная зона */
+  .art-zone {
+    position: absolute; inset: 16px 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 5px;
+  }
+  .art-zone .halo {
+    position: absolute; width: 58px; height: 58px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(224,164,88,.16), transparent 70%);
+  }
+  .art-major svg { width: 42px; height: 42px; position: relative; }
+  .art-ace svg { width: 40px; height: 40px; position: relative; }
+  .court-marker svg { width: 19px; height: 19px; display: block; position: relative; }
+  .court-glyph svg { width: 32px; height: 32px; display: block; position: relative; }
+  .pips {
+    position: relative;
+    display: grid; grid-template-columns: repeat(2, auto);
+    gap: 5px 13px; justify-items: center; align-content: center;
+  }
+  .pips svg { width: 15px; height: 15px; display: block; }
+  .pips svg:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .pips.one { grid-template-columns: auto; }
+
+  /* уголки-завитки */
+  .corner { position: absolute; width: 15px; height: 15px; opacity: .8; }
+  .corner svg { width: 100%; height: 100%; display: block; }
+  .corner.c1 { top: 3px; left: 3px; }
+  .corner.c2 { top: 3px; right: 3px; transform: rotate(90deg); }
+  .corner.c3 { bottom: 3px; right: 3px; transform: rotate(180deg); }
+  .corner.c4 { bottom: 3px; left: 3px; transform: rotate(270deg); }
+
+  /* ---------- колода ---------- */
+  #deck-zone { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: flex-end; min-height: 0; position: relative; z-index: 2; }
+  #deck-scroll {
+    overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+    padding: 34px 24px 10px;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  }
+  #deck-scroll::-webkit-scrollbar { display: none; }
+  #deck { display: flex; height: calc(var(--card-h) + 26px); align-items: flex-end; }
+  .deck-card {
+    flex: 0 0 auto; width: var(--card-w); height: var(--card-h);
+    margin-left: calc(var(--card-w) * -0.72); position: relative;
+    border-radius: 9px; transition: transform .25s, opacity .3s, margin .3s, width .3s;
+    cursor: pointer;
+  }
+  .deck-card:hover { transform: translateY(-10px); }
+  .deck-card:first-child { margin-left: 0; }
+  .deck-card .mini-back { position: absolute; inset: 0; border-radius: 9px; }
+  .deck-card.gone { width: 0; margin-left: 0; opacity: 0; pointer-events: none; }
+  .deck-card.jitter { animation: jit .35s ease; }
+  @keyframes jit {
+    30% { transform: translateY(-9px) rotate(-2.5deg); }
+    70% { transform: translateY(2px) rotate(1.5deg); }
+  }
+
+  /* летящая карта */
+  .flyer {
+    position: fixed; width: var(--card-w); height: var(--card-h);
+    z-index: 50; border-radius: 9px; pointer-events: none; overflow: hidden;
+    transition: transform .55s cubic-bezier(.3,.7,.3,1);
+  }
+
+  /* ---------- низ ---------- */
+  #controls { flex: 0 0 auto; padding: 6px 20px calc(18px + env(safe-area-inset-bottom)); text-align: center; position: relative; z-index: 2; }
+  .btn {
+    display: inline-block; width: 100%; max-width: 340px;
+    padding: 14px 18px; border: none; border-radius: 12px;
+    font-size: 15.5px; font-weight: 600; letter-spacing: .02em;
+    background: linear-gradient(160deg, var(--amber-soft), var(--amber));
+    color: #241a0e; cursor: pointer;
+    box-shadow: 0 6px 22px rgba(224,164,88,.28);
+    transition: opacity .3s, transform .15s;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn[disabled] { opacity: 0; pointer-events: none; }
+  .btn.pulse { animation: pulse 2.2s ease infinite; }
+  @keyframes pulse {
+    50% { box-shadow: 0 6px 34px rgba(224,164,88,.55); }
+  }
+  .btn-ghost {
+    background: none; border: 1px solid rgba(224,164,88,.4); color: var(--amber);
+    box-shadow: none; width: auto; padding: 9px 16px; font-size: 13px; font-weight: 500;
+    border-radius: 10px; margin-bottom: 8px;
+  }
+  .counter { font-size: 12px; color: var(--muted); margin-bottom: 8px; letter-spacing: .05em; }
+
+  /* демо-плашка */
+  #demo-note {
+    position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 90;
+    background: #1e1826; border: 1px solid rgba(224,164,88,.4); border-radius: 12px;
+    padding: 14px; font-size: 12.5px; line-height: 1.5; color: var(--ink);
+    box-shadow: 0 10px 30px rgba(0,0,0,.6); display: none;
+  }
+  #demo-note code {
+    display: block; margin-top: 8px; padding: 8px; border-radius: 8px;
+    background: #120e17; color: var(--teal); font-size: 11px;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  #demo-note .x { position: absolute; top: 6px; right: 12px; color: var(--muted); font-size: 16px; cursor: pointer; }
+
+  .age { position: fixed; top: 10px; right: 12px; font-size: 10px; color: rgba(154,143,128,.6); z-index: 2; }
+</style>
+</head>
+<body>
+  <div class="age">18+</div>
+  <header>
+    <div class="logo">Карты Не Врут</div>
+    <div class="hint" id="hint"></div>
+  </header>
+
+  <div id="slots"></div>
+
+  <div id="deck-zone">
+    <div id="deck-scroll"><div id="deck"></div></div>
+  </div>
+
+  <div id="controls">
+    <div class="counter" id="counter"></div>
+    <button class="btn btn-ghost" id="btn-shuffle">🔀 Перемешать ещё раз</button><br>
+    <button class="btn" id="btn-main" disabled></button>
+  </div>
+
+  <div id="demo-note">
+    <span class="x" id="demo-x">✕</span>
+    <b>Демо-режим</b> (страница открыта вне Telegram).<br>
+    В боте нажатие кнопки отправило бы эти данные, и разбор пришёл бы в чат:
+    <code id="demo-payload"></code>
+  </div>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   ДАННЫЕ КАРТ — id соответствуют CARDS в cards.py бота
+   ========================================================================== */
+const CARDS = [{"id": 0, "name": "Шут", "essence": "Начало с чистого листа. Шаг без гарантий."}, {"id": 1, "name": "Маг", "essence": "У тебя уже есть всё, чтобы действовать."}, {"id": 2, "name": "Верховная Жрица", "essence": "Ты уже знаешь ответ, просто не хочешь его слышать."}, {"id": 3, "name": "Императрица", "essence": "Забота, ресурс, рост — но сначала к себе."}, {"id": 4, "name": "Император", "essence": "Порядок, границы, взрослые решения."}, {"id": 5, "name": "Иерофант", "essence": "Правила, традиции, «как принято»."}, {"id": 6, "name": "Влюблённые", "essence": "Выбор сердцем — и его цена."}, {"id": 7, "name": "Колесница", "essence": "Движение вперёд усилием воли."}, {"id": 8, "name": "Сила", "essence": "Мягкая сила сильнее давления."}, {"id": 9, "name": "Отшельник", "essence": "Пауза и честный разговор с собой."}, {"id": 10, "name": "Колесо Фортуны", "essence": "Полоса меняется — будь готова."}, {"id": 11, "name": "Справедливость", "essence": "Причины и следствия. Всё честно."}, {"id": 12, "name": "Повешенный", "essence": "Пауза и взгляд под другим углом."}, {"id": 13, "name": "Смерть", "essence": "Конец главы — не конец книги."}, {"id": 14, "name": "Умеренность", "essence": "Баланс и дозировка, без крайностей."}, {"id": 15, "name": "Дьявол", "essence": "Зависимость, которую называют любовью или привычкой."}, {"id": 16, "name": "Башня", "essence": "Рушится то, что стояло на лжи."}, {"id": 17, "name": "Звезда", "essence": "Надежда после шторма. Обоснованная."}, {"id": 18, "name": "Луна", "essence": "Туман, страхи, додумывание."}, {"id": 19, "name": "Солнце", "essence": "Ясность и тепло. Всё по-настоящему хорошо."}, {"id": 20, "name": "Суд", "essence": "Переоценка и второй шанс."}, {"id": 21, "name": "Мир", "essence": "Завершение круга. Целостность."}, {"id": 22, "name": "Туз Жезлов", "essence": "Искра. Новое желание, которое просит хода."}, {"id": 23, "name": "Двойка Жезлов", "essence": "Первый успех есть. Дальше — решать, выходить ли за привычное."}, {"id": 24, "name": "Тройка Жезлов", "essence": "Сделано верно — теперь дождаться, пока корабли вернутся."}, {"id": 25, "name": "Четвёрка Жезлов", "essence": "Опора построена. Повод отметить — честный."}, {"id": 26, "name": "Пятёрка Жезлов", "essence": "Возня и споры, где никто не побеждает."}, {"id": 27, "name": "Шестёрка Жезлов", "essence": "Победа, которую видно. Признание заслуженно."}, {"id": 28, "name": "Семёрка Жезлов", "essence": "Держать позицию. Она того стоит."}, {"id": 29, "name": "Восьмёрка Жезлов", "essence": "Ускорение. События понеслись."}, {"id": 30, "name": "Девятка Жезлов", "essence": "Потрёпана, но стоишь. Осталось немного."}, {"id": 31, "name": "Десятка Жезлов", "essence": "Всё на себе. Часть ноши — лишняя."}, {"id": 32, "name": "Паж Жезлов", "essence": "Любопытство и «а что, если попробовать?»"}, {"id": 33, "name": "Рыцарь Жезлов", "essence": "Порыв и страсть. Красиво, быстро, рискованно."}, {"id": 34, "name": "Королева Жезлов", "essence": "Уверенность, тепло и внутренний огонь."}, {"id": 35, "name": "Король Жезлов", "essence": "Видение и воля. Тот, кто ведёт."}, {"id": 36, "name": "Туз Кубков", "essence": "Сердце открывается. Новое чувство."}, {"id": 37, "name": "Двойка Кубков", "essence": "Взаимность. Двое на равных."}, {"id": 38, "name": "Тройка Кубков", "essence": "Свой круг. Не всё решается вдвоём."}, {"id": 39, "name": "Четвёрка Кубков", "essence": "Всё есть — и всё не то. Апатия."}, {"id": 40, "name": "Пятёрка Кубков", "essence": "Потеря. Но пролито три чаши, а не пять."}, {"id": 41, "name": "Шестёрка Кубков", "essence": "Прошлое стучится: ностальгия или старый знакомый."}, {"id": 42, "name": "Семёрка Кубков", "essence": "Много вариантов. Половина — миражи."}, {"id": 43, "name": "Восьмёрка Кубков", "essence": "Уйти от того, что больше не наполняет."}, {"id": 44, "name": "Девятка Кубков", "essence": "Желание близко к исполнению. Разреши себе."}, {"id": 45, "name": "Десятка Кубков", "essence": "Полнота в отношениях. Настоящая, не с открытки."}, {"id": 46, "name": "Паж Кубков", "essence": "Робкая нежность. Весть о чувствах."}, {"id": 47, "name": "Рыцарь Кубков", "essence": "Красивый жест. Смотри на дела после слов."}, {"id": 48, "name": "Королева Кубков", "essence": "Глубина и эмпатия. Чувствовать — не растворяться."}, {"id": 49, "name": "Король Кубков", "essence": "Зрелые чувства. Глубина без бури."}, {"id": 50, "name": "Туз Мечей", "essence": "Момент истины. Назвать вещи своими именами."}, {"id": 51, "name": "Двойка Мечей", "essence": "Тупик выбора. Повязка на глазах — своя."}, {"id": 52, "name": "Тройка Мечей", "essence": "Больно, потому что правда."}, {"id": 53, "name": "Четвёрка Мечей", "essence": "Пауза. Уставшая голова решает плохо."}, {"id": 54, "name": "Пятёрка Мечей", "essence": "Победа, после которой пусто."}, {"id": 55, "name": "Шестёрка Мечей", "essence": "Переход в спокойные воды. Тихо, но верно."}, {"id": 56, "name": "Семёрка Мечей", "essence": "Игра за спиной. Кто-то недоговаривает."}, {"id": 57, "name": "Восьмёрка Мечей", "essence": "Клетка из мыслей. Верёвки слабее, чем кажутся."}, {"id": 58, "name": "Девятка Мечей", "essence": "Ночная тревога. Она врёт о масштабах."}, {"id": 59, "name": "Десятка Мечей", "essence": "Дно. Зато от него отталкиваются."}, {"id": 60, "name": "Паж Мечей", "essence": "Вопросы, наблюдение, острый язык."}, {"id": 61, "name": "Рыцарь Мечей", "essence": "Напор и скорость. Легко снести живое."}, {"id": 62, "name": "Королева Мечей", "essence": "Ясный ум и прямота. Боль, переплавленная в опыт."}, {"id": 63, "name": "Король Мечей", "essence": "Логика и правила. Решение головой."}, {"id": 64, "name": "Туз Пентаклей", "essence": "Реальная возможность. С фундаментом, не воздушная."}, {"id": 65, "name": "Двойка Пентаклей", "essence": "Жонглирование. Пока получается — но пока."}, {"id": 66, "name": "Тройка Пентаклей", "essence": "Мастерство замечено. Строить вместе."}, {"id": 67, "name": "Четвёрка Пентаклей", "essence": "Держать своё — или вцепиться от страха."}, {"id": 68, "name": "Пятёрка Пентаклей", "essence": "Трудная полоса. Помощь ближе, чем кажется."}, {"id": 69, "name": "Шестёрка Пентаклей", "essence": "Давать и брать. Проверь, честные ли весы."}, {"id": 70, "name": "Семёрка Пентаклей", "essence": "Всходы медленные. Оценить, что поливаешь."}, {"id": 71, "name": "Восьмёрка Пентаклей", "essence": "Ремесло. Скучно — и именно так строится мастерство."}, {"id": 72, "name": "Девятка Пентаклей", "essence": "Свой сад. Выращен своими руками."}, {"id": 73, "name": "Десятка Пентаклей", "essence": "Надолго: семья, дом, наследие."}, {"id": 74, "name": "Паж Пентаклей", "essence": "Ученичество. Маленький шаг с прицелом на большое."}, {"id": 75, "name": "Рыцарь Пентаклей", "essence": "Медленно, скучно, надёжно. И это работает."}, {"id": 76, "name": "Королева Пентаклей", "essence": "Практичная забота. Тепло через дела."}, {"id": 77, "name": "Король Пентаклей", "essence": "Достаток и надёжность. Проверено делом."}];
+
+const REVERSED_CHANCE = 0.3; // как в cards.py
+
+/* Типы раскладов: открывать как index.html?spread=classic|yesno|choice|feelings */
+const SPREADS = {
+  classic:  { n: 3, labels: ["I", "II", "III"] },
+  yesno:    { n: 1, labels: ["Ответ"] },
+  choice:   { n: 3, labels: ["Вариант А", "Вариант Б", "Что учесть"] },
+  feelings: { n: 3, labels: ["Его чувства", "Что скрыто", "Твой ход"] },
+};
+
+/* Кастомная колода (Higgsfield и т.п.): положи файлы в miniapp/cards/0.webp … 77.webp —
+   они подхватятся автоматически, без правки кода. Нет файла — рисуется штатное лицо. */
+const ART_DIR = "cards/";
+const ART_EXT = ".webp";
+
+/* ==========================================================================
+   ГРАФИКА: иконки мастей, старших арканов, фигур, рубашка
+   ========================================================================== */
+const A = "#e0a458", T = "#3f8f86", ST = "#b9c2cc";
+const svg = (inner, extra) =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="${A}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" ${extra || ""}>${inner}</svg>`;
+
+const SUIT_GLYPHS = {
+  "Жезлов": svg(`<path d="M12 20.5V4"/><path d="M12 7.5L9.4 5.4M12 7.5l2.6-2.1M12 11.5l-2.2-1.8M12 11.5l2.2-1.8"/><circle cx="12" cy="3" r="1.2" fill="${A}" stroke="none"/>`),
+  "Кубков": svg(`<path d="M6.5 4.5h11v3a5.5 5.5 0 0 1-11 0v-3z"/><path d="M12 13v4.5M8 20h8"/><path d="M17.8 6.5c1.4.1 2.3 1 1.9 2.2M6.2 6.5c-1.4.1-2.3 1-1.9 2.2"/>`, `stroke="${T}"`),
+  "Мечей": svg(`<path d="M12 2.8L13.5 6v8.5h-3V6L12 2.8z" fill="rgba(185,194,204,.15)"/><path d="M12 3.2v11.3"/><path d="M7.8 15.5h8.4M12 15.5v4M10.4 20.5h3.2"/>`, `stroke="${ST}"`),
+  "Пентаклей": svg(`<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="6.8" opacity=".3"/><path d="M12 6.2l1.7 3.6 4 .4-3 2.8.8 3.9-3.5-2.1-3.5 2.1.8-3.9-3-2.8 4-.4z"/>`, `stroke-width="1.3"`),
+};
+
+const MAJOR_ICONS = {
+  0: svg(`<path d="M5 19.5L15.5 7"/><circle cx="17.2" cy="5.6" r="2.6"/><path d="M19 15.5v4.6M16.7 17.8h4.6"/>`),
+  1: svg(`<path d="M12 12c-1.6-2.1-3-3.1-4.6-3.1C5.5 8.9 4 10.2 4 12s1.5 3.1 3.4 3.1c1.6 0 3-1 4.6-3.1 1.6 2.1 3 3.1 4.6 3.1 1.9 0 3.4-1.3 3.4-3.1s-1.5-3.1-3.4-3.1c-1.6 0-3 1-4.6 3.1z"/>`),
+  2: svg(`<path d="M5.5 20.5v-14M18.5 20.5v-14"/><path d="M5.5 6.5C8 4 16 4 18.5 6.5"/><path d="M13.7 10.3a3.4 3.4 0 1 0 0 5.2 4.1 4.1 0 0 1 0-5.2z"/>`),
+  3: svg(`<circle cx="12" cy="8.8" r="4.6"/><path d="M12 13.4V21M8.8 17.4h6.4"/>`),
+  4: svg(`<path d="M12 3l7 2.6v4.9c0 4.4-2.9 8.4-7 9.9-4.1-1.5-7-5.5-7-9.9V5.6L12 3z"/><path d="M12 8v6M9 11h6"/>`),
+  5: svg(`<circle cx="7.6" cy="6.8" r="2.4"/><circle cx="16.4" cy="6.8" r="2.4"/><path d="M9.3 8.6l7.5 7.7m0 0v3.2m0-3.2h3.2M14.7 8.6l-7.5 7.7m0 0v3.2m0-3.2H4"/>`),
+  6: svg(`<circle cx="9.3" cy="12" r="4.6"/><circle cx="14.7" cy="12" r="4.6"/>`),
+  7: svg(`<circle cx="12" cy="14" r="4.6"/><path d="M12 9.4v9.2M7.4 14h9.2M8.7 10.7l6.6 6.6M15.3 10.7l-6.6 6.6"/><path d="M6.8 8.4C4.9 8.4 3.4 7.5 3 6c1.7-.5 3.4 0 4.9 1.5M17.2 8.4c1.9 0 3.4-.9 3.8-2.4-1.7-.5-3.4 0-4.9 1.5"/>`),
+  8: svg(`<path d="M12 3.5c2.4 2.9 4.8 5.3 4.8 8.6a4.8 4.8 0 0 1-9.6 0c0-1.5.5-2.9 1.6-4.3.4 1.3 1.2 2.2 2.2 2.2-.5-1.9-.1-4.2 1-6.5z"/><path d="M12 12.8c.9.9 1.5 1.7 1.5 2.7a1.5 1.5 0 1 1-3 0c0-1 .6-1.8 1.5-2.7z" stroke="${T}"/>`),
+  9: svg(`<path d="M8.6 9h6.8v8a3.4 3.4 0 0 1-6.8 0V9z"/><path d="M8.6 9l1.5-2.8h3.8L15.4 9M10 4h4"/><circle cx="12" cy="13" r="1.6" fill="${A}" stroke="none"/>`),
+  10: svg(`<circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="2"/><path d="M12 3.8v16.4M3.8 12h16.4M6.2 6.2l11.6 11.6M17.8 6.2L6.2 17.8" opacity=".8"/>`),
+  11: svg(`<path d="M12 4.6V19M9 19h6"/><path d="M5.5 8h13"/><path d="M5.5 8l-2.1 4.3a2.7 2.7 0 0 0 4.2 0L5.5 8zM18.5 8l-2.1 4.3a2.7 2.7 0 0 0 4.2 0L18.5 8z"/><circle cx="12" cy="4" r="1" fill="${A}" stroke="none"/>`),
+  12: svg(`<path d="M5 4h14M12 4v3.4"/><path d="M12 7.4l4 6.2H8l4-6.2z"/><circle cx="12" cy="16.6" r="2.6"/>`),
+  13: svg(`<path d="M12 4.6a3.4 3.4 0 0 1 3.4 3.4c0 1.9-1.5 3.4-3.4 3.4S8.6 9.9 8.6 8 10.1 4.6 12 4.6z"/><circle cx="12" cy="8" r="1.1"/><path d="M12 11.4V21"/><path d="M12 15.2c-1.7-.3-2.9-1.3-3.3-2.9M12 17.4c1.7-.3 2.9-1.3 3.3-2.9"/>`),
+  14: svg(`<circle cx="12" cy="12" r="8.2"/><path d="M12 7.4l4.4 7.8H7.6L12 7.4z"/>`),
+  15: svg(`<rect x="4.5" y="8" width="8.6" height="8" rx="4"/><rect x="10.9" y="8" width="8.6" height="8" rx="4"/>`),
+  16: svg(`<path d="M9 21V9h6v12M8.5 9V6.6h7V9M6 21h12"/><path d="M16.8 2.4l-3 4.4h2.5l-2.4 4.4" stroke="${T}"/>`),
+  17: svg(`<path d="M12 3.6l1.6 6.8L20.4 12l-6.8 1.6L12 20.4l-1.6-6.8L3.6 12l6.8-1.6L12 3.6z"/><path d="M12 8.6v6.8M8.6 12h6.8" opacity=".45"/>`),
+  18: svg(`<path d="M15.8 4.6a7.7 7.7 0 1 0 0 14.8 9.2 9.2 0 0 1 0-14.8z"/><circle cx="18.6" cy="9" r=".9" fill="${A}" stroke="none"/><circle cx="20" cy="13.4" r=".9" fill="${A}" stroke="none"/>`),
+  19: svg(`<circle cx="12" cy="12" r="4.4"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.4 5.4l1.8 1.8M16.8 16.8l1.8 1.8M18.6 5.4l-1.8 1.8M7.2 16.8l-1.8 1.8"/>`),
+  20: svg(`<path d="M4 9.6L15.6 4v16L4 14.4V9.6z"/><path d="M17.8 9.2a4.8 4.8 0 0 1 0 5.6M20 7.2a8 8 0 0 1 0 9.6" opacity=".6"/>`),
+  21: svg(`<path d="M7 4.6C3.6 7.2 3.6 16.8 7 19.4M17 4.6c3.4 2.6 3.4 12.2 0 14.8"/><path d="M6 8.2l-1.8-.8M5.6 12H3.6M6 15.8l-1.8.8M18 8.2l1.8-.8M18.4 12h2M18 15.8l1.8.8"/><path d="M12 9.6l.9 1.7 1.9.3-1.4 1.4.3 1.9-1.7-.9-1.7.9.3-1.9-1.4-1.4 1.9-.3z"/>`),
+};
+
+const COURT_MARKERS = {
+  "Паж": svg(`<path d="M18.6 4.4C13 5.4 9.4 9.4 8.4 15.4L7 20"/><path d="M9 13.2c2.4 1 4.9.5 6.9-1.4M10.6 9.6c2 1 3.9.8 5.4-.5"/>`),
+  "Рыцарь": svg(`<path d="M7.5 19.5V11a4.5 4.5 0 0 1 9 0v8.5"/><path d="M7.5 14.2h9"/><path d="M12 6.5c.2-2 1.6-3.4 3.6-3.9"/>`),
+  "Королева": svg(`<path d="M5 17.5l-1.2-8 4.6 3L12 6.4l3.6 6.1 4.6-3-1.2 8H5z"/><circle cx="12" cy="5" r="1" fill="${A}" stroke="none"/><circle cx="3.6" cy="8.4" r=".9" fill="${A}" stroke="none"/><circle cx="20.4" cy="8.4" r=".9" fill="${A}" stroke="none"/>`),
+  "Король": svg(`<path d="M5.4 18.5L4 11.4l4.1 2.5L12 8.2l3.9 5.7 4.1-2.5-1.4 7.1H5.4z"/><path d="M12 2.2v3.4M10.6 3.9h2.8"/>`),
+};
+
+/* индекс в углу карты */
+const RANK_IDX = {
+  "Туз":"Т","Двойка":"2","Тройка":"3","Четвёрка":"4","Пятёрка":"5","Шестёрка":"6",
+  "Семёрка":"7","Восьмёрка":"8","Девятка":"9","Десятка":"10",
+  "Паж":"П","Рыцарь":"Р","Королева":"Д","Король":"К",
+};
+const RANK_N = { "Туз":1,"Двойка":2,"Тройка":3,"Четвёрка":4,"Пятёрка":5,"Шестёрка":6,"Семёрка":7,"Восьмёрка":8,"Девятка":9,"Десятка":10 };
+const ROMAN = ["0","I","II","III","IV","V","VI","VII","VIII","IX","X","XI",
+               "XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI"];
+
+/* рубашка */
+const BACK_ART = `
+<svg class="backsvg" viewBox="0 0 86 136" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="lat" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <path d="M0 6h12M6 0v12" stroke="rgba(224,164,88,.10)" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect x="6" y="6" width="74" height="124" rx="5" fill="url(#lat)"/>
+  <rect x="6" y="6" width="74" height="124" rx="5" fill="none" stroke="rgba(224,164,88,.45)" stroke-width="1"/>
+  <rect x="9.5" y="9.5" width="67" height="117" rx="3.5" fill="none" stroke="rgba(224,164,88,.18)" stroke-width="1"/>
+  <circle cx="43" cy="68" r="21" fill="#151019" stroke="rgba(224,164,88,.5)" stroke-width="1"/>
+  <circle cx="43" cy="68" r="17" fill="none" stroke="rgba(224,164,88,.22)" stroke-width="1" stroke-dasharray="2 3"/>
+  <path d="M48.5 58.5a11 11 0 1 0 0 19 13 13 0 0 1 0-19z" fill="none" stroke="#e0a458" stroke-width="1.4"/>
+  <path d="M50 64.6l.8 1.6 1.7.3-1.2 1.2.3 1.7-1.6-.8-1.5.8.3-1.7-1.3-1.2 1.8-.3z" fill="#e0a458"/>
+  <g stroke="rgba(224,164,88,.5)" stroke-width="1.2" fill="none">
+    <path d="M43 32v8M39.5 36h7"/>
+    <path d="M43 96v8M39.5 100h7"/>
+  </g>
+  <g fill="rgba(224,164,88,.65)">
+    <circle cx="15" cy="15" r="1.3"/><circle cx="71" cy="15" r="1.3"/>
+    <circle cx="15" cy="121" r="1.3"/><circle cx="71" cy="121" r="1.3"/>
+  </g>
+</svg>`;
+
+/* завиток для углов лица */
+const CORNER = `<svg viewBox="0 0 15 15" fill="none" stroke="rgba(224,164,88,.75)" stroke-width="1.1" stroke-linecap="round">
+  <path d="M2 13C2 6.9 6.9 2 13 2"/><path d="M2 8.5C2 4.9 4.9 2 8.5 2" opacity=".5"/><circle cx="2.6" cy="2.6" r="1" fill="rgba(224,164,88,.75)" stroke="none"/>
+</svg>`;
+const CORNERS_HTML =
+  `<div class="corner c1">${CORNER}</div><div class="corner c2">${CORNER}</div>` +
+  `<div class="corner c3">${CORNER}</div><div class="corner c4">${CORNER}</div>`;
+
+/* ==========================================================================
+   Инициализация
+   ========================================================================== */
+const tg = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== undefined
+  ? window.Telegram.WebApp : null;
+const inTelegram = !!(tg && tg.initData);
+if (tg) { try { tg.ready(); tg.expand(); tg.setHeaderColor("#0e0c11"); tg.setBackgroundColor("#0e0c11"); } catch (e) {} }
+
+const params = new URLSearchParams(location.search);
+const spreadKey = SPREADS[params.get("spread")] ? params.get("spread") : "classic";
+const spread = SPREADS[spreadKey];
+
+const $ = (id) => document.getElementById(id);
+const hintEl = $("hint"), deckEl = $("deck"), slotsEl = $("slots"),
+      mainBtn = $("btn-main"), shuffleBtn = $("btn-shuffle"), counterEl = $("counter");
+
+let order = shuffle(CARDS.map(c => c.id)); // порядок колоды
+let picked = [];                            // [{id, rev}]
+let phase = "pick";                         // pick -> flip -> done
+
+function shuffle(a) {
+  const arr = a.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function haptic(kind) {
+  try {
+    if (!tg || !tg.HapticFeedback) return;
+    if (kind === "pick") tg.HapticFeedback.impactOccurred("medium");
+    else if (kind === "flip") tg.HapticFeedback.impactOccurred("heavy");
+    else tg.HapticFeedback.notificationOccurred("success");
+  } catch (e) {}
+}
+
+/* звёзды на фоне */
+(function stars() {
+  for (let i = 0; i < 34; i++) {
+    const s = document.createElement("span");
+    s.className = "star";
+    const size = 1 + Math.random() * 1.6;
+    s.style.cssText = `width:${size}px;height:${size}px;left:${Math.random() * 100}%;` +
+      `top:${Math.random() * 100}%;animation-duration:${2.5 + Math.random() * 4}s;` +
+      `animation-delay:${Math.random() * 5}s;`;
+    document.body.appendChild(s);
+  }
+})();
+
+/* ---------- сборка лица карты ---------- */
+function suitOf(card) { return card.name.split(" ").pop(); }
+function rankOf(card) { return card.name.split(" ")[0]; }
+
+function centerArt(card) {
+  if (card.id < 22) {
+    return `<div class="art-zone"><div class="halo"></div><div class="art-major">${MAJOR_ICONS[card.id]}</div></div>`;
+  }
+  const suit = suitOf(card), rank = rankOf(card), glyph = SUIT_GLYPHS[suit];
+  if (COURT_MARKERS[rank]) {
+    return `<div class="art-zone"><div class="halo"></div>
+      <div class="court-marker">${COURT_MARKERS[rank]}</div>
+      <div class="court-glyph">${glyph}</div></div>`;
+  }
+  const n = RANK_N[rank] || 1;
+  if (n === 1) return `<div class="art-zone"><div class="halo"></div><div class="art-ace">${glyph}</div></div>`;
+  return `<div class="art-zone"><div class="pips">${glyph.repeat(n)}</div></div>`;
+}
+
+function idxHTML(card) {
+  const label = card.id < 22 ? ROMAN[card.id] : RANK_IDX[rankOf(card)] || "";
+  const mini = card.id < 22 ? "" : SUIT_GLYPHS[suitOf(card)];
+  return `<div class="idx tl">${label}${mini}</div><div class="idx br">${label}${mini}</div>`;
+}
+
+function faceHTML(card, rev) {
+  return `<div class="facet face-art">
+    <img class="art-img" src="${ART_DIR}${card.id}${ART_EXT}" alt=""
+         style="${rev ? "transform:rotate(180deg);" : ""}"
+         onerror="this.remove()">
+    <div class="face-gen${rev ? " rev" : ""}">
+      ${CORNERS_HTML}
+      ${idxHTML(card)}
+      ${centerArt(card)}
+    </div>
+  </div>`;
+}
+
+/* ---------- слоты ---------- */
+for (let i = 0; i < spread.n; i++) {
+  const s = document.createElement("div");
+  s.className = "slot";
+  const tilt = [-1.6, 0.9, 1.8][i % 3];
+  s.innerHTML = `<div class="well" id="well-${i}" style="transform:rotate(${tilt}deg)"></div>
+                 <div class="pos">${spread.labels[i]}</div>
+                 <div class="cardname" id="name-${i}"></div>`;
+  slotsEl.appendChild(s);
+}
+
+/* ---------- колода ---------- */
+function renderDeck() {
+  deckEl.innerHTML = "";
+  order.forEach((id) => {
+    const d = document.createElement("div");
+    d.className = "deck-card";
+    d.dataset.id = id;
+    d.innerHTML = `<div class="mini-back back-art facet">${BACK_ART}</div>`;
+    d.addEventListener("click", () => pickCard(d));
+    deckEl.appendChild(d);
+  });
+  requestAnimationFrame(() => {
+    const sc = $("deck-scroll");
+    sc.scrollLeft = (sc.scrollWidth - sc.clientWidth) / 2;
+  });
+}
+
+/* ---------- выбор карты ---------- */
+function pickCard(el) {
+  if (phase !== "pick" || picked.length >= spread.n || el.classList.contains("gone")) return;
+  const id = Number(el.dataset.id);
+  const rev = Math.random() < REVERSED_CHANCE;
+  const slotIdx = picked.length;
+  picked.push({ id, rev });
+  haptic("pick");
+
+  const from = el.getBoundingClientRect();
+  const well = $("well-" + slotIdx);
+  const to = well.getBoundingClientRect();
+  const flyer = document.createElement("div");
+  flyer.className = "flyer back-art";
+  flyer.innerHTML = BACK_ART;
+  flyer.style.left = from.left + "px";
+  flyer.style.top = from.top + "px";
+  document.body.appendChild(flyer);
+  el.classList.add("gone");
+  requestAnimationFrame(() => {
+    flyer.style.transform =
+      `translate(${to.left - from.left}px, ${to.top - from.top}px)`;
+  });
+  setTimeout(() => {
+    flyer.remove();
+    const card = CARDS.find(c => c.id === id);
+    const holder = document.createElement("div");
+    holder.className = "card3d";
+    holder.id = "card3d-" + slotIdx;
+    holder.innerHTML = `<div class="facet back-art">${BACK_ART}</div>` + faceHTML(card, rev);
+    well.appendChild(holder);
+    well.parentElement.classList.add("filled");
+    update();
+  }, 560);
+  update();
+}
+
+/* ---------- переворот ---------- */
+function flipAll() {
+  phase = "flip";
+  update();
+  picked.forEach((p, i) => {
+    setTimeout(() => {
+      haptic("flip");
+      const holder = $("card3d-" + i);
+      if (holder) holder.classList.add("flipped");
+      const card = CARDS.find(c => c.id === p.id);
+      const nameEl = $("name-" + i);
+      nameEl.innerHTML = card.name +
+        (p.rev ? '<span class="rev-badge">перевёрнутая</span>' : "");
+      nameEl.style.opacity = 1;
+      if (i === picked.length - 1) setTimeout(() => { phase = "done"; haptic("done"); update(); }, 800);
+    }, 350 + i * 700);
+  });
+}
+
+/* ---------- отправка в бота ---------- */
+function send() {
+  const payload = JSON.stringify({
+    v: 1, spread: spreadKey,
+    cards: picked.map(p => ({ id: p.id, rev: p.rev ? 1 : 0 })),
+  });
+  if (inTelegram) {
+    tg.sendData(payload); // бот получит web_app_data; Telegram закроет Mini App
+  } else {
+    $("demo-payload").textContent = payload;
+    $("demo-note").style.display = "block";
+  }
+}
+
+/* ---------- перемешать ---------- */
+shuffleBtn.addEventListener("click", () => {
+  if (phase !== "pick") return;
+  const rest = order.filter(id => !picked.some(p => p.id === id));
+  order = shuffle(rest);
+  renderDeck();
+  deckEl.querySelectorAll(".deck-card").forEach((c, i) => {
+    setTimeout(() => c.classList.add("jitter"), (i % 12) * 18);
+  });
+});
+
+/* ---------- состояния интерфейса ---------- */
+const HINTS = {
+  pick:  "Сосредоточься на своём вопросе.<br>Проведи по колоде и вытяни " +
+         (spread.n === 1 ? "<b>одну карту</b>" : "<b>" + spread.n + " карты</b>") +
+         " — не думай, какую. Рука знает.",
+  ready: "Карты на столе. Готова?",
+  flip:  "Смотрим…",
+  done:  "Что это значит именно для тебя — <b>разбор придёт в чат</b>. Честно, как договаривались.",
+};
+
+function update() {
+  const full = picked.length >= spread.n;
+  if (phase === "pick" && full) { hintEl.innerHTML = HINTS.ready; }
+  else hintEl.innerHTML = HINTS[phase];
+
+  counterEl.textContent = phase === "pick" && !full
+    ? `выбрано ${picked.length} из ${spread.n}` : "";
+
+  shuffleBtn.style.display = (phase === "pick" && picked.length === 0) ? "" : "none";
+
+  mainBtn.classList.toggle("pulse", phase === "done");
+  if (phase === "pick" && full) {
+    mainBtn.textContent = "Перевернуть карты";
+    mainBtn.disabled = false;
+    mainBtn.onclick = flipAll;
+  } else if (phase === "done") {
+    mainBtn.textContent = "Получить разбор ✨";
+    mainBtn.disabled = false;
+    mainBtn.onclick = send;
+  } else {
+    mainBtn.disabled = true;
+  }
+}
+
+$("demo-x").addEventListener("click", () => $("demo-note").style.display = "none");
+
+renderDeck();
+update();
+</script>
+</body>
+</html
