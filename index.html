@@ -14,38 +14,36 @@
     --teal: #3f8f86;
     --ink: #e8e2d6;
     --muted: #9a8f80;
-    --card-w: 86px;
-    --card-h: 136px;
+    --card-w: 78px;
+    --card-h: 123px;
+    --deck-w: 70px;
+    --deck-h: 111px;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; overflow: hidden; }
   body {
     font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
     color: var(--ink);
-    background:
-      radial-gradient(120% 70% at 50% -10%, rgba(224,164,88,.10), transparent 60%),
-      radial-gradient(90% 60% at 50% 115%, rgba(63,143,134,.12), transparent 60%),
-      linear-gradient(var(--bg2), var(--bg));
+    background: var(--bg);
     display: flex; flex-direction: column;
     user-select: none; -webkit-user-select: none;
   }
-  /* виньетка и звёзды */
+  /* Фон-стол. Пока — спокойный тёмный градиент без переливов.
+     Когда будет картинка стола, достаточно добавить в :root
+     --table-img: url(table.webp); — она встанет сюда сама. */
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: 0;
+    background: var(--table-img, linear-gradient(180deg, #16111c 0%, var(--bg) 55%, #0a080d 100%));
+    background-size: cover; background-position: center;
+  }
+  /* виньетка — естественное затемнение краёв */
   body::after {
     content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 1;
-    background: radial-gradient(115% 100% at 50% 45%, transparent 60%, rgba(0,0,0,.42));
-  }
-  .star {
-    position: fixed; border-radius: 50%; background: var(--amber-soft);
-    pointer-events: none; z-index: 0; opacity: 0;
-    animation: twinkle linear infinite;
-  }
-  @keyframes twinkle {
-    0%, 100% { opacity: 0; }
-    50% { opacity: .55; }
+    background: radial-gradient(115% 100% at 50% 45%, transparent 62%, rgba(0,0,0,.4));
   }
 
   /* ---------- шапка ---------- */
-  header { text-align: center; padding: 14px 16px 4px; position: relative; z-index: 2; }
+  header { text-align: center; padding: 10px 16px 2px; position: relative; z-index: 2; }
   .logo {
     font-family: Georgia, "Times New Roman", serif;
     font-size: 13px; letter-spacing: .38em; text-transform: uppercase;
@@ -54,16 +52,16 @@
   }
   .logo::before, .logo::after { content: " ✦ "; font-size: 8px; vertical-align: 2px; color: rgba(224,164,88,.6); }
   .hint {
-    margin: 10px auto 0; max-width: 300px;
-    font-size: 14.5px; line-height: 1.45; color: var(--muted);
-    min-height: 42px; transition: opacity .4s;
+    margin: 7px auto 0; max-width: 300px;
+    font-size: 14px; line-height: 1.4; color: var(--muted);
+    min-height: 38px; transition: opacity .4s;
   }
   .hint b { color: var(--ink); font-weight: 600; }
 
   /* ---------- слоты ---------- */
   #slots {
-    display: flex; justify-content: center; gap: 14px;
-    padding: 12px 8px 4px; flex: 0 0 auto; position: relative; z-index: 2;
+    display: flex; justify-content: center; gap: 12px;
+    padding: 8px 8px 2px; flex: 0 0 auto; position: relative; z-index: 2;
   }
   .slot { width: var(--card-w); text-align: center; }
   .slot .well {
@@ -165,44 +163,30 @@
   .corner.c3 { bottom: 3px; right: 3px; transform: rotate(180deg); }
   .corner.c4 { bottom: 3px; left: 3px; transform: rotate(270deg); }
 
-  /* ---------- колода ---------- */
-  #deck-zone { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: flex-end; min-height: 0; position: relative; z-index: 2; }
-  #deck-scroll {
-    overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
-    padding: 34px 24px 10px;
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
-    mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
-  }
-  #deck-scroll::-webkit-scrollbar { display: none; }
-  #deck { display: flex; height: calc(var(--card-h) + 26px); align-items: flex-end; }
+  /* ---------- стол с россыпью карт ---------- */
+  #deck-zone { flex: 1 1 auto; min-height: 0; position: relative; z-index: 2; }
+  #table { position: absolute; inset: 8px 12px 4px; }
   .deck-card {
-    flex: 0 0 auto; width: var(--card-w); height: var(--card-h);
-    margin-left: calc(var(--card-w) * -0.72); position: relative;
-    border-radius: 9px; transition: transform .25s, opacity .3s, margin .3s, width .3s;
-    cursor: pointer;
+    position: absolute; width: var(--deck-w); height: var(--deck-h);
+    border-radius: 8px; cursor: pointer;
+    transition: transform .5s cubic-bezier(.3,.7,.3,1), opacity .25s;
+    will-change: transform;
   }
-  .deck-card:hover { transform: translateY(-10px); }
-  .deck-card:first-child { margin-left: 0; }
-  .deck-card .mini-back { position: absolute; inset: 0; border-radius: 9px; }
-  .deck-card.gone { width: 0; margin-left: 0; opacity: 0; pointer-events: none; }
-  .deck-card.jitter { animation: jit .35s ease; }
-  @keyframes jit {
-    30% { transform: translateY(-9px) rotate(-2.5deg); }
-    70% { transform: translateY(2px) rotate(1.5deg); }
-  }
+  .deck-card .mini-back { position: absolute; inset: 0; border-radius: 8px; }
+  .deck-card.gone { opacity: 0; pointer-events: none; }
 
   /* летящая карта */
   .flyer {
-    position: fixed; width: var(--card-w); height: var(--card-h);
-    z-index: 50; border-radius: 9px; pointer-events: none; overflow: hidden;
+    position: fixed; width: var(--deck-w); height: var(--deck-h);
+    z-index: 50; border-radius: 8px; pointer-events: none; overflow: hidden;
     transition: transform .55s cubic-bezier(.3,.7,.3,1);
   }
 
   /* ---------- низ ---------- */
-  #controls { flex: 0 0 auto; padding: 6px 20px calc(18px + env(safe-area-inset-bottom)); text-align: center; position: relative; z-index: 2; }
+  #controls { flex: 0 0 auto; padding: 4px 20px calc(12px + env(safe-area-inset-bottom)); text-align: center; position: relative; z-index: 2; }
   .btn {
     display: inline-block; width: 100%; max-width: 340px;
-    padding: 14px 18px; border: none; border-radius: 12px;
+    padding: 12px 16px; border: none; border-radius: 12px;
     font-size: 15.5px; font-weight: 600; letter-spacing: .02em;
     background: linear-gradient(160deg, var(--amber-soft), var(--amber));
     color: #241a0e; cursor: pointer;
@@ -249,7 +233,7 @@
   <div id="slots"></div>
 
   <div id="deck-zone">
-    <div id="deck-scroll"><div id="deck"></div></div>
+    <div id="table"></div>
   </div>
 
   <div id="controls">
@@ -391,7 +375,7 @@ const spreadKey = SPREADS[params.get("spread")] ? params.get("spread") : "classi
 const spread = SPREADS[spreadKey];
 
 const $ = (id) => document.getElementById(id);
-const hintEl = $("hint"), deckEl = $("deck"), slotsEl = $("slots"),
+const hintEl = $("hint"), deckEl = $("table"), slotsEl = $("slots"),
       mainBtn = $("btn-main"), shuffleBtn = $("btn-shuffle"), counterEl = $("counter");
 
 let order = shuffle(CARDS.map(c => c.id)); // порядок колоды
@@ -415,19 +399,6 @@ function haptic(kind) {
     else tg.HapticFeedback.notificationOccurred("success");
   } catch (e) {}
 }
-
-/* звёзды на фоне */
-(function stars() {
-  for (let i = 0; i < 34; i++) {
-    const s = document.createElement("span");
-    s.className = "star";
-    const size = 1 + Math.random() * 1.6;
-    s.style.cssText = `width:${size}px;height:${size}px;left:${Math.random() * 100}%;` +
-      `top:${Math.random() * 100}%;animation-duration:${2.5 + Math.random() * 4}s;` +
-      `animation-delay:${Math.random() * 5}s;`;
-    document.body.appendChild(s);
-  }
-})();
 
 /* ---------- сборка лица карты ---------- */
 function suitOf(card) { return card.name.split(" ").pop(); }
@@ -478,22 +449,77 @@ for (let i = 0; i < spread.n; i++) {
   slotsEl.appendChild(s);
 }
 
-/* ---------- колода ---------- */
-function renderDeck() {
+/* ---------- россыпь карт по столу ---------- */
+const DECK_W = 70, DECK_H = 111; /* = --deck-w/--deck-h */
+
+/* Равномерно-случайные позиции (best-candidate): без рядов,
+   каждая следующая карта ложится подальше от уже лежащих,
+   поэтому полностью накрытых не бывает. */
+function scatterPositions(n, W, H) {
+  const pts = [], MIN2 = 48 * 48; /* минимум 48px между центрами */
+  for (let i = 0; i < n; i++) {
+    let best = null, bestD = -1;
+    for (let t = 0; t < 60; t++) {
+      const x = Math.random() * W, y = Math.random() * H;
+      let d = Infinity;
+      for (const p of pts) d = Math.min(d, (p.x - x) ** 2 + (p.y - y) ** 2);
+      if (d > bestD) { bestD = d; best = { x, y }; }
+      if (bestD >= MIN2 && t >= 12) break;
+    }
+    pts.push(best);
+  }
+  return pts;
+}
+
+function renderDeck(animate = true) {
   deckEl.innerHTML = "";
-  order.forEach((id) => {
+  const spanX = Math.max(deckEl.clientWidth - DECK_W, 1);
+  const spanY = Math.max(deckEl.clientHeight - DECK_H, 1);
+  /* сколько карт кладём — от площади стола, чтобы не было каши */
+  const n = Math.max(12, Math.min(26,
+    Math.round(deckEl.clientWidth * deckEl.clientHeight / 6200)));
+  const avail = order.filter(id => !picked.some(p => p.id === id)).slice(0, n);
+  const pts = scatterPositions(avail.length, spanX, spanY);
+  const zs = shuffle(avail.map((_, i) => i)); /* случайный порядок наложения */
+  const cx = spanX / 2, cy = spanY / 2;
+
+  avail.forEach((id, i) => {
+    const rot = (Math.random() * 28 - 14).toFixed(1);
     const d = document.createElement("div");
     d.className = "deck-card";
     d.dataset.id = id;
+    d.dataset.rot = rot;
+    d.style.left = pts[i].x + "px";
+    d.style.top = pts[i].y + "px";
+    d.style.zIndex = 2 + zs[i];
     d.innerHTML = `<div class="mini-back back-art facet">${BACK_ART}</div>`;
     d.addEventListener("click", () => pickCard(d));
+    if (animate) { /* стопка в центре -> разлетаются по столу */
+      d.style.transform = `translate(${cx - pts[i].x}px, ${cy - pts[i].y}px)`;
+      d.style.transitionDelay = (i * 16) + "ms";
+    } else {
+      d.style.transform = `rotate(${rot}deg)`;
+    }
     deckEl.appendChild(d);
   });
-  requestAnimationFrame(() => {
-    const sc = $("deck-scroll");
-    sc.scrollLeft = (sc.scrollWidth - sc.clientWidth) / 2;
-  });
+
+  if (animate) requestAnimationFrame(() => requestAnimationFrame(() => {
+    deckEl.querySelectorAll(".deck-card").forEach(d => {
+      d.style.transform = `rotate(${d.dataset.rot}deg)`;
+    });
+    setTimeout(() => deckEl.querySelectorAll(".deck-card").forEach(d => {
+      d.style.transitionDelay = "0ms";
+    }), avail.length * 16 + 550);
+  }));
 }
+
+/* пересобрать россыпь при изменении размера окна (до первого выбора) */
+let _rsT;
+window.addEventListener("resize", () => {
+  if (phase !== "pick" || picked.length) return;
+  clearTimeout(_rsT);
+  _rsT = setTimeout(() => renderDeck(false), 200);
+});
 
 /* ---------- выбор карты ---------- */
 function pickCard(el) {
@@ -510,13 +536,19 @@ function pickCard(el) {
   const flyer = document.createElement("div");
   flyer.className = "flyer back-art";
   flyer.innerHTML = BACK_ART;
-  flyer.style.left = from.left + "px";
-  flyer.style.top = from.top + "px";
+  /* стартуем из видимого центра карты с её наклоном, летим в слот, выпрямляясь */
+  const fx = from.left + from.width / 2 - DECK_W / 2;
+  const fy = from.top + from.height / 2 - DECK_H / 2;
+  flyer.style.left = fx + "px";
+  flyer.style.top = fy + "px";
+  flyer.style.transform = `rotate(${el.dataset.rot || 0}deg)`;
   document.body.appendChild(flyer);
   el.classList.add("gone");
+  const dx = (to.left + to.width / 2) - (fx + DECK_W / 2);
+  const dy = (to.top + to.height / 2) - (fy + DECK_H / 2);
   requestAnimationFrame(() => {
     flyer.style.transform =
-      `translate(${to.left - from.left}px, ${to.top - from.top}px)`;
+      `translate(${dx}px, ${dy}px) rotate(0deg) scale(${to.width / DECK_W})`;
   });
   setTimeout(() => {
     flyer.remove();
@@ -568,19 +600,15 @@ function send() {
 /* ---------- перемешать ---------- */
 shuffleBtn.addEventListener("click", () => {
   if (phase !== "pick") return;
-  const rest = order.filter(id => !picked.some(p => p.id === id));
-  order = shuffle(rest);
-  renderDeck();
-  deckEl.querySelectorAll(".deck-card").forEach((c, i) => {
-    setTimeout(() => c.classList.add("jitter"), (i % 12) * 18);
-  });
+  order = shuffle(order.filter(id => !picked.some(p => p.id === id)));
+  renderDeck(true); /* новая россыпь из центра */
 });
 
 /* ---------- состояния интерфейса ---------- */
 const HINTS = {
-  pick:  "Сосредоточься на своём вопросе.<br>Проведи по колоде и вытяни " +
+  pick:  "Сосредоточься на вопросе — и вытяни " +
          (spread.n === 1 ? "<b>одну карту</b>" : "<b>" + spread.n + " карты</b>") +
-         " — не думай, какую. Рука знает.",
+         ". Рука знает.",
   ready: "Карты на столе. Готова?",
   flip:  "Смотрим…",
   done:  "Что это значит именно для тебя — <b>разбор придёт в чат</b>. Честно, как договаривались.",
@@ -614,6 +642,7 @@ $("demo-x").addEventListener("click", () => $("demo-note").style.display = "none
 
 renderDeck();
 update();
+/* v2: россыпь по столу, спокойный фон */
 </script>
 </body>
 </html
