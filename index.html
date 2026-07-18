@@ -230,7 +230,7 @@
   .deck-card {
     position: absolute; width: var(--deck-w); height: var(--deck-h);
     border-radius: 9px; cursor: pointer;
-    transition: transform .5s cubic-bezier(.3,.7,.3,1), opacity .25s;
+    transition: transform .6s cubic-bezier(.22,1.15,.36,1), opacity .45s;
     will-change: transform;
   }
   .deck-card .mini-back {
@@ -240,7 +240,7 @@
   }
   @keyframes floaty { 50% { transform: translateY(-3px); } }
   .deck-card:active .mini-back { transform: scale(.95); animation: none; }
-  .deck-card.gone { opacity: 0; pointer-events: none; }
+  .deck-card.gone { opacity: 0 !important; pointer-events: none; }
 
   /* летящая карта */
   .flyer {
@@ -300,6 +300,53 @@
     border-radius: 11px; margin-bottom: 9px;
   }
   .btn-ghost::after { display: none; }
+
+  /* ---------- сочность: приземление, подъём, финал ---------- */
+  .slot .well.land { animation: landflash .55s ease-out; }
+  @keyframes landflash {
+    0% { box-shadow: 0 0 0 rgba(232,163,76,0); }
+    40% { box-shadow: 0 0 26px rgba(232,163,76,.5), inset 0 0 12px rgba(232,163,76,.15); }
+    100% { box-shadow: none; }
+  }
+  .slot .well.lifting { animation: lift .9s cubic-bezier(.3,.7,.3,1); }
+  @keyframes lift { 35% { transform: scale(1.07); } }
+  .card3d.peek { animation: peek .55s ease-out; }
+  @keyframes peek {
+    30% { transform: rotateY(180deg) scale(1.06) rotate(1.5deg); }
+    100% { transform: rotateY(180deg); }
+  }
+
+  /* финал: россыпь уходит, карты вырастают крупным планом */
+  :root { --card-w-big: 106px; --card-h-big: 168px; }
+  #deck-zone { transition: flex .8s cubic-bezier(.3,.8,.3,1), opacity .5s; }
+  body.done #deck-zone { flex: 0.02; opacity: 0; pointer-events: none; }
+  #slots { position: relative; transition: gap .7s, padding .7s; }
+  #slots::before {
+    content: ""; position: absolute; inset: -34px -14px -50px;
+    background: radial-gradient(62% 72% at 50% 42%, rgba(232,163,76,.13), transparent 72%);
+    opacity: 0; transition: opacity 1s .2s; pointer-events: none;
+  }
+  body.done #slots::before { opacity: 1; }
+  body.done #slots { gap: 17px; padding-top: 14px; }
+  .slot { transition: width .75s cubic-bezier(.25,1,.35,1); }
+  .slot .well { transition: width .75s cubic-bezier(.25,1,.35,1), height .75s cubic-bezier(.25,1,.35,1), border-color .4s, box-shadow .4s; }
+  .slot .pos, .slot .cardname, .slot .essence { transition: font-size .7s, opacity .5s, color .5s; }
+  body.done .slot { width: var(--card-w-big); }
+  body.done .slot .well { width: var(--card-w-big); height: var(--card-h-big); }
+  body.done .slot .pos { font-size: 11px; margin-top: 11px; }
+  body.done .slot .cardname { font-size: 16.5px; }
+  body.done .slot .essence { font-size: 11.5px; color: var(--ink); line-height: 1.45; }
+  body.done .hint { font-size: 17.5px; color: var(--ink); }
+  .art-major svg, .art-ace svg, .court-glyph svg, .court-marker svg, .pips svg { transition: width .7s, height .7s; }
+  .idx { transition: font-size .7s; }
+  body.done .art-major svg { width: 60px; height: 60px; }
+  body.done .art-ace svg { width: 52px; height: 52px; }
+  body.done .court-glyph svg { width: 42px; height: 42px; }
+  body.done .court-marker svg { width: 25px; height: 25px; }
+  body.done .pips svg { width: 20px; height: 20px; }
+  body.done .idx { font-size: 14px; }
+  @media (max-width: 365px) { :root { --card-w-big: 94px; --card-h-big: 149px; } }
+  @media (max-height: 620px) { :root { --card-w-big: 92px; --card-h-big: 146px; } }
 
   /* демо-плашка */
   #demo-note {
@@ -538,8 +585,8 @@ function sndFlip() {
   for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.2);
   const src = c.createBufferSource(); src.buffer = buf;
   const f = c.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 1.2;
-  f.frequency.setValueAtTime(900, t); f.frequency.exponentialRampToValueAtTime(2600, t + 0.14);
-  const g = c.createGain(); g.gain.setValueAtTime(0.1, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+  f.frequency.setValueAtTime(700, t); f.frequency.exponentialRampToValueAtTime(1900, t + 0.14);
+  const g = c.createGain(); g.gain.setValueAtTime(0.07, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
   src.connect(f); f.connect(g); g.connect(c.destination); src.start(t);
 }
 function sndTick() {
@@ -548,6 +595,21 @@ function sndTick() {
   o.type = "triangle"; o.frequency.setValueAtTime(1300, t); o.frequency.exponentialRampToValueAtTime(650, t + 0.05);
   g.gain.setValueAtTime(0.04, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
   o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.07);
+}
+function sndDeal() { /* мягкий шорох раздачи — вместо резких тиков */
+  if (!SND) return; const c = ac(); if (!c) return;
+  const t = c.currentTime;
+  for (let k = 0; k < 3; k++) {
+    const dur = 0.22, buf = c.createBuffer(1, c.sampleRate * dur, c.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) {
+      const e = Math.sin(Math.PI * (i / d.length));
+      d[i] = (Math.random() * 2 - 1) * e * e;
+    }
+    const src = c.createBufferSource(); src.buffer = buf;
+    const f = c.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 900 - k * 180; f.Q.value = 0.6;
+    const g = c.createGain(); g.gain.value = 0.035;
+    src.connect(f); f.connect(g); g.connect(c.destination); src.start(t + k * 0.09);
+  }
 }
 function sndChime() {
   if (!SND) return; const c = ac(); if (!c) return;
@@ -613,6 +675,13 @@ function sparks(x, y, n) {
     }
   }
   window.addEventListener("resize", resize); resize();
+  let embers = [];
+  function ember() {
+    const dpr = window.devicePixelRatio || 1;
+    return { x: Math.random() * W, y: H + 10, vy: (0.25 + Math.random() * 0.4) * dpr,
+             dx: (Math.random() - 0.5) * 0.35 * dpr, r: (0.7 + Math.random() * 1) * dpr,
+             a: 0.05 + Math.random() * 0.2, ph: Math.random() * 6.28 };
+  }
   let last = 0;
   function frame(ts) {
     requestAnimationFrame(frame);
@@ -625,6 +694,17 @@ function sparks(x, y, n) {
       ctx.globalAlpha = Math.max(0.07, tw * 0.8);
       ctx.fillStyle = s.gold ? "#f0c987" : "#dfe4f0";
       ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.284); ctx.fill();
+    }
+    if (!reduced) { /* тлеющие угольки, поднимающиеся снизу */
+      if (embers.length < 8 && Math.random() < 0.03) embers.push(ember());
+      for (let i = embers.length - 1; i >= 0; i--) {
+        const e = embers[i];
+        e.ph += 0.03; e.y -= e.vy; e.x += e.dx + Math.sin(e.ph) * 0.3;
+        if (e.y < -12) { embers.splice(i, 1); continue; }
+        ctx.globalAlpha = e.a * (0.6 + 0.4 * Math.sin(e.ph * 2));
+        ctx.fillStyle = "#e8a34c";
+        ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, 6.284); ctx.fill();
+      }
     }
     if (!reduced) {
       const dpr = window.devicePixelRatio || 1;
@@ -749,7 +829,8 @@ function renderDeck(animate = true) {
     d.innerHTML = `<div class="mini-back back-art facet" style="--fd:-${(Math.random() * 5).toFixed(1)}s">${BACK_ART}</div>`;
     d.addEventListener("click", () => pickCard(d));
     if (animate) {
-      d.style.transform = `translate(${cx - pts[i].x}px, ${cy - pts[i].y}px) rotate(${(Math.random() * 40 - 20).toFixed(0)}deg)`;
+      d.style.transform = `translate(${cx - pts[i].x}px, ${cy - pts[i].y}px) rotate(${(Math.random() * 40 - 20).toFixed(0)}deg) scale(.55)`;
+      d.style.opacity = 0;
       d.style.transitionDelay = (i * 18) + "ms";
     } else {
       d.style.transform = `rotate(${rot}deg)`;
@@ -759,9 +840,10 @@ function renderDeck(animate = true) {
 
   if (animate) {
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      deckEl.querySelectorAll(".deck-card").forEach((d, i) => {
+      sndDeal();
+      deckEl.querySelectorAll(".deck-card").forEach((d) => {
         d.style.transform = `rotate(${d.dataset.rot}deg)`;
-        setTimeout(sndTick, i * 18 + 60);
+        d.style.opacity = "";
       });
       setTimeout(() => deckEl.querySelectorAll(".deck-card").forEach(d => {
         d.style.transitionDelay = "0ms";
@@ -811,6 +893,10 @@ function pickCard(el) {
   });
   setTimeout(() => {
     flyer.remove();
+    well.classList.add("land");
+    setTimeout(() => well.classList.remove("land"), 600);
+    const wr = well.getBoundingClientRect();
+    sparks(wr.left + wr.width / 2, wr.top + wr.height / 2, 4);
     const card = CARDS.find(c => c.id === id);
     const holder = document.createElement("div");
     holder.className = "card3d";
@@ -823,6 +909,27 @@ function pickCard(el) {
   update();
 }
 
+/* ---------- финал: россыпь осыпается вниз ---------- */
+function dropDeck() {
+  deckEl.querySelectorAll(".deck-card").forEach((d, i) => {
+    d.style.transitionDelay = (i * 22) + "ms";
+    d.style.transitionDuration = ".7s";
+    d.style.transform = `translateY(70vh) rotate(${(Math.random() * 50 - 25).toFixed(0)}deg)`;
+    d.style.opacity = 0;
+    d.style.pointerEvents = "none";
+  });
+}
+
+/* лёгкий отклик на тап по открытой карте */
+function peekCard(holder) {
+  if (phase !== "done" || holder.classList.contains("peek")) return;
+  haptic("soft"); sndFlip();
+  holder.classList.add("peek");
+  const r = holder.getBoundingClientRect();
+  sparks(r.left + r.width / 2, r.top + r.height / 2, 5);
+  setTimeout(() => holder.classList.remove("peek"), 600);
+}
+
 /* ---------- переворот: по одной, с паузой ---------- */
 function flipAll() {
   phase = "flip";
@@ -832,7 +939,10 @@ function flipAll() {
       haptic("flip"); sndFlip();
       const holder = $("card3d-" + i);
       if (holder) {
+        holder.parentElement.classList.add("lifting");
+        setTimeout(() => holder.parentElement.classList.remove("lifting"), 950);
         holder.classList.add("flipped");
+        holder.addEventListener("click", () => peekCard(holder));
         setTimeout(() => {
           holder.classList.add("lit");
           const face = holder.querySelector(".face-art");
@@ -850,7 +960,11 @@ function flipAll() {
       essEl.textContent = card.essence;
       essEl.style.opacity = 1;
       if (i === picked.length - 1) {
-        setTimeout(() => { phase = "done"; haptic("done"); sndChime(); update(); }, 850);
+        setTimeout(() => {
+          phase = "done"; haptic("done"); sndChime(); update();
+          dropDeck();
+          setTimeout(() => document.body.classList.add("done"), 200);
+        }, 850);
       }
     }, 400 + i * 900);
   });
