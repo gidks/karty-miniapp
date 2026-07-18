@@ -292,6 +292,7 @@
   @keyframes shine { 0%,55% { left: -80%; } 75%,100% { left: 140%; } }
   .btn:active { transform: scale(.975); }
   .btn[disabled] { opacity: 0; pointer-events: none; }
+  body.phase-ask .btn[disabled] { opacity: .35; } /* на экране вопроса кнопка видна, но ждёт текст */
   .btn.pulse { animation: pulse 2.2s ease infinite; }
   @keyframes pulse { 50% { box-shadow: 0 8px 38px rgba(232,163,76,.6), inset 0 1px 0 rgba(255,255,255,.5); } }
   .btn-ghost {
@@ -348,6 +349,106 @@
   @media (max-width: 365px) { :root { --card-w-big: 94px; --card-h-big: 149px; } }
   @media (max-height: 620px) { :root { --card-w-big: 92px; --card-h-big: 146px; } }
 
+  /* ============ ЭКРАН ВОПРОСА (v4) ============ */
+  #ask {
+    flex: 1 1 auto; min-height: 0; position: relative; z-index: 2;
+    display: none; flex-direction: column; align-items: center;
+    padding: 14px 22px 6px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  body.phase-ask #ask { display: flex; }
+  body.phase-ask #slots, body.phase-ask #deck-zone { display: none; }
+  .ask-title {
+    font-family: var(--serif); font-weight: 600; font-size: 22px;
+    color: var(--ink); text-align: center; letter-spacing: .02em;
+  }
+  .ask-title::after {
+    content: ""; display: block; width: 44px; height: 1px; margin: 9px auto 0;
+    background: linear-gradient(90deg, transparent, rgba(232,163,76,.7), transparent);
+  }
+  .ask-sub {
+    margin-top: 9px; max-width: 310px; text-align: center;
+    font-size: 12.5px; line-height: 1.55; color: var(--muted);
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }
+  .chip {
+    padding: 8px 14px; border-radius: 20px; cursor: pointer; user-select: none;
+    border: 1px solid rgba(232,163,76,.3); background: rgba(237,232,223,.03);
+    color: var(--muted); font-size: 12.5px; font-weight: 600; transition: .25s;
+  }
+  .chip.sel {
+    color: #241505; border-color: transparent;
+    background: linear-gradient(135deg, var(--amber-soft), var(--amber));
+    box-shadow: 0 4px 14px rgba(232,163,76,.3);
+  }
+  #q-input {
+    margin-top: 15px; width: 100%; max-width: 340px; min-height: 92px;
+    background: rgba(13,16,32,.72); border: 1px solid rgba(232,163,76,.28);
+    border-radius: 14px; color: var(--ink);
+    font-family: var(--sans); font-size: 16px; line-height: 1.45;
+    padding: 12px 14px; resize: none; outline: none;
+    transition: border-color .3s, box-shadow .3s;
+  }
+  #q-input:focus { border-color: rgba(232,163,76,.6); box-shadow: 0 0 18px rgba(232,163,76,.12); }
+  #q-input::placeholder { color: var(--dim); font-size: 14px; }
+  .q-note {
+    margin-top: 9px; max-width: 300px; text-align: center;
+    font-size: 11px; line-height: 1.5; color: var(--dim);
+  }
+
+  /* ============ РИТУАЛ: ПЕРЕМЕШАТЬ И СНЯТЬ (v4) ============ */
+  #stack {
+    position: absolute; left: 50%; top: 50%;
+    width: var(--card-w); height: var(--card-h);
+    margin: calc(var(--card-h) / -2) 0 0 calc(var(--card-w) / -2);
+    cursor: pointer; touch-action: none; display: none;
+  }
+  body.phase-shuffle #stack { display: block; }
+  #stack .halo-ring {
+    position: absolute; inset: -34px; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, rgba(232,163,76,.15), transparent 70%);
+    animation: stackpulse 2.4s ease-in-out infinite;
+  }
+  @keyframes stackpulse { 50% { transform: scale(1.14); opacity: .65; } }
+  #stack .st {
+    position: absolute; inset: 0; border-radius: 10px;
+    transition: transform .32s cubic-bezier(.3,.7,.3,1);
+    will-change: transform;
+  }
+  #stack.mixing .st { transition-duration: .17s; }
+
+  /* ============ РАСКЛАД «НЕДЕЛЯ» — 7 КАРТ (v4) ============ */
+  body.spread-week { --card-w: 64px; --card-h: 101px; --deck-w: 56px; --deck-h: 88px; }
+  body.spread-week #slots {
+    flex-wrap: wrap; gap: 7px 9px; padding: 6px 6px 0;
+    max-width: 320px; margin: 0 auto;
+  }
+  body.spread-week .slot .pos { margin-top: 4px; font-size: 8.5px; letter-spacing: .14em; }
+  body.spread-week .slot .cardname { font-size: 9.5px; min-height: 12px; margin-top: 2px; }
+  body.spread-week .slot .essence { display: none; }
+  body.spread-week .hint { min-height: 36px; font-size: 14.5px; }
+  body.spread-week { --card-w-big: 72px; --card-h-big: 114px; }
+  body.spread-week.done #slots { gap: 8px 10px; padding-top: 8px; max-width: 340px; }
+  body.spread-week.done .slot .pos { font-size: 9px; margin-top: 6px; }
+  body.spread-week.done .slot .cardname { font-size: 10.5px; }
+  body.spread-week.done .art-major svg { width: 40px; height: 40px; }
+  body.spread-week.done .art-ace svg { width: 36px; height: 36px; }
+  body.spread-week.done .court-glyph svg { width: 30px; height: 30px; }
+  body.spread-week.done .court-marker svg { width: 18px; height: 18px; }
+  body.spread-week.done .pips svg { width: 13px; height: 13px; }
+  body.spread-week.done .idx { font-size: 11px; }
+  body.spread-week .pips { gap: 3px 8px; }
+  body.spread-week .pips svg { width: 11px; height: 11px; }
+  body.spread-week .art-major svg { width: 34px; height: 34px; }
+  body.spread-week .art-ace svg { width: 30px; height: 30px; }
+  body.spread-week .court-glyph svg { width: 25px; height: 25px; }
+  body.spread-week .court-marker svg { width: 15px; height: 15px; }
+  body.spread-week .idx { font-size: 9px; }
+  body.spread-week .idx svg { width: 7px; height: 7px; }
+  body.spread-week .art-zone { inset: 12px 8px; }
+  @media (max-height: 620px) {
+    body.spread-week { --card-w: 56px; --card-h: 88px; --card-w-big: 62px; --card-h-big: 98px; }
+  }
+
   /* демо-плашка */
   #demo-note {
     position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 90;
@@ -387,10 +488,19 @@
     <div class="hint" id="hint"></div>
   </header>
 
+  <div id="ask">
+    <div class="ask-title" id="ask-title"></div>
+    <div class="ask-sub" id="ask-sub"></div>
+    <div class="chips" id="chips" style="display:none"></div>
+    <textarea id="q-input" maxlength="400" rows="3"></textarea>
+    <div class="q-note" id="q-note"></div>
+  </div>
+
   <div id="slots"></div>
 
   <div id="deck-zone">
     <div id="table"></div>
+    <div id="stack"></div>
   </div>
 
   <div id="controls">
@@ -416,13 +526,43 @@ const CARDS = [{"id": 0, "name": "Шут", "essence": "Начало с чист�
 
 const REVERSED_CHANCE = 0.3; // как в cards.py
 
-/* Типы раскладов: index.html?spread=classic|yesno|choice|feelings */
+/* Типы раскладов: index.html?spread=classic|yesno|choice|feelings|week */
+const DAY_SHORT = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+const weekLabels = (() => {
+  const t = new Date().getDay();
+  return Array.from({ length: 7 }, (_, i) => DAY_SHORT[(t + i) % 7]);
+})();
+
 const SPREADS = {
-  classic:  { n: 3, labels: ["I", "II", "III"] },
-  yesno:    { n: 1, labels: ["Ответ"] },
-  choice:   { n: 3, labels: ["Вариант А", "Вариант Б", "Что учесть"] },
-  feelings: { n: 3, labels: ["Его чувства", "Что скрыто", "Твой ход"] },
+  classic:  { n: 3, labels: ["I", "II", "III"], title: "Три карты",
+              sub: "О чём раскладываем? Выбери тему — и, если хочешь, опиши ситуацию своими словами.",
+              note: "Можно оставить поле пустым — карты покажут общее. Но чем конкретнее вопрос, тем честнее разбор.",
+              qOptional: true },
+  yesno:    { n: 1, labels: ["Ответ"], title: "Да или нет",
+              sub: "Задай вопрос, на который можно ответить «да» или «нет». Одна карта — прямой ответ без раскачки.",
+              note: "Пара фраз — мне нужно за что-то зацепиться.",
+              qOptional: false },
+  choice:   { n: 3, labels: ["Вариант А", "Вариант Б", "Что учесть"], title: "Выбор из двух",
+              sub: "Опиши, между чем выбираешь: «или так — или так». Пара фраз про каждый вариант.",
+              note: "Чем конкретнее опишешь оба пути, тем честнее сравню.",
+              qOptional: false },
+  feelings: { n: 3, labels: ["Его чувства", "Что скрыто", "Твой ход"], title: "Что он чувствует",
+              sub: "Расскажи немного про него и что между вами происходит.",
+              note: "Я не читаю мысли — но карты хорошо показывают, как это выглядит со стороны.",
+              qOptional: false },
+  week:     { n: 7, labels: weekLabels, title: "Неделя вперёд",
+              sub: "Семь карт — по одной на каждый день, начиная с сегодняшнего.",
+              note: "Есть главный вопрос недели — напиши. Нет — оставь пустым, посмотрим неделю как есть.",
+              qOptional: true },
 };
+
+/* Темы для классического расклада (payload: topic) */
+const TOPICS = [
+  { key: "relations", label: "💔 Отношения", ph: "Что происходит между вами и что ты хочешь понять?" },
+  { key: "work",      label: "💼 Работа и деньги", ph: "Что за ситуация — и что хочешь для себя прояснить?" },
+  { key: "self",      label: "🌱 Про себя", ph: "Что внутри просит внимания? Состояние, выбор, «что со мной»." },
+  { key: "own",       label: "✨ Свой вопрос", ph: "Опиши ситуацию своими словами — как есть." },
+];
 
 /* Кастомная колода (Higgsfield): miniapp/cards/0.webp … 77.webp —
    подхватятся автоматически. Нет файла — рисуется штатное лицо. */
@@ -542,13 +682,18 @@ const params = new URLSearchParams(location.search);
 const spreadKey = SPREADS[params.get("spread")] ? params.get("spread") : "classic";
 const spread = SPREADS[spreadKey];
 
+document.body.classList.add("phase-ask");
+if (spreadKey === "week") document.body.classList.add("spread-week");
+
 const $ = (id) => document.getElementById(id);
 const hintEl = $("hint"), deckEl = $("table"), slotsEl = $("slots"),
-      mainBtn = $("btn-main"), shuffleBtn = $("btn-shuffle"), counterEl = $("counter");
+      mainBtn = $("btn-main"), shuffleBtn = $("btn-shuffle"), counterEl = $("counter"),
+      stackEl = $("stack"), qInput = $("q-input");
 
 let order = shuffle(CARDS.map(c => c.id));
 let picked = [];
-let phase = "pick"; // pick -> flip -> done
+let phase = "ask"; // ask -> shufflerite -> pick -> flip -> done
+let topicKey = spreadKey === "classic" ? "own" : null;
 
 function shuffle(a) {
   const arr = a.slice();
@@ -788,7 +933,9 @@ function markNextSlot() {
 }
 
 /* ---------- россыпь карт по столу ---------- */
-const DECK_W = 74, DECK_H = 117; /* = --deck-w/--deck-h */
+const _bcs = getComputedStyle(document.body); /* --deck-w/--deck-h с учётом spread-week */
+const DECK_W = parseFloat(_bcs.getPropertyValue("--deck-w")) || 74;
+const DECK_H = parseFloat(_bcs.getPropertyValue("--deck-h")) || 117;
 
 function scatterPositions(n, W, H) {
   const pts = [], MIN2 = 48 * 48;
@@ -858,6 +1005,145 @@ window.addEventListener("resize", () => {
   clearTimeout(_rsT);
   _rsT = setTimeout(() => renderDeck(false), 200);
 });
+
+/* ==========================================================================
+   v4: ЭКРАН ВОПРОСА
+   ========================================================================== */
+function escHtml(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function cardsWord(n) {
+  return n === 1 ? "одну карту" : n >= 5 ? n + " карт" : n + " карты";
+}
+function qValue() { return (qInput.value || "").trim(); }
+function askValid() { return spread.qOptional || qValue().length >= 5; }
+
+function initAsk() {
+  $("ask-title").textContent = spread.title;
+  $("ask-sub").textContent = spread.sub;
+  $("q-note").textContent = spread.note;
+  qInput.placeholder = spreadKey === "classic"
+    ? TOPICS.find(t => t.key === topicKey).ph
+    : (spreadKey === "week" ? "Вопрос или тема недели (необязательно)…" : "Опиши ситуацию своими словами…");
+  if (spreadKey === "classic") {
+    const chipsEl = $("chips");
+    chipsEl.style.display = "";
+    TOPICS.forEach(t => {
+      const c = document.createElement("div");
+      c.className = "chip" + (t.key === topicKey ? " sel" : "");
+      c.textContent = t.label;
+      c.addEventListener("click", () => {
+        topicKey = t.key;
+        chipsEl.querySelectorAll(".chip").forEach(x => x.classList.remove("sel"));
+        c.classList.add("sel");
+        qInput.placeholder = t.ph;
+        haptic("soft");
+      });
+      chipsEl.appendChild(c);
+    });
+  }
+  qInput.addEventListener("input", update);
+}
+
+/* ==========================================================================
+   v4: РИТУАЛ — ПЕРЕМЕШАТЬ (удержание) И СНЯТЬ (тап)
+   ========================================================================== */
+const STACK_N = 8;
+let mixT = null, holdStart = 0, mixMs = 0, cutReady = false, cutting = false;
+
+function baseStackTransform(i) {
+  return `translate(${((i % 2 ? -1 : 1) * i * 0.7).toFixed(1)}px, ${(-i * 2.2).toFixed(1)}px) rotate(${(i * 1.7 - 6).toFixed(1)}deg)`;
+}
+
+function buildStack() {
+  stackEl.innerHTML = '<div class="halo-ring"></div>';
+  for (let i = 0; i < STACK_N; i++) {
+    const d = document.createElement("div");
+    d.className = "st back-art facet";
+    d.innerHTML = BACK_ART;
+    d.style.transform = baseStackTransform(i);
+    stackEl.appendChild(d);
+  }
+}
+
+function startShuffleRite() {
+  phase = "shufflerite";
+  document.body.classList.remove("phase-ask");
+  document.body.classList.add("phase-shuffle");
+  if (tg && tg.enableClosingConfirmation) { try { tg.enableClosingConfirmation(); } catch (e) {} }
+  try { qInput.blur(); } catch (e) {}
+  buildStack();
+  hintEl.innerHTML = "Возьми колоду: <b>держи палец на ней</b>, пока мешается. Отпустишь — она готова.";
+  haptic("soft");
+  update();
+}
+
+function mixTick() {
+  order = shuffle(order);
+  stackEl.querySelectorAll(".st").forEach((d, i) => {
+    const dx = (Math.random() * 46 - 23).toFixed(1);
+    const dy = (Math.random() * 30 - 15 - i * 1.4).toFixed(1);
+    const r = (Math.random() * 30 - 15).toFixed(1);
+    d.style.transform = `translate(${dx}px, ${dy}px) rotate(${r}deg)`;
+  });
+  haptic("soft"); sndDeal();
+}
+
+function stopMix() {
+  if (!mixT) return;
+  clearInterval(mixT); mixT = null;
+  stackEl.classList.remove("mixing");
+  mixMs += Date.now() - holdStart;
+  stackEl.querySelectorAll(".st").forEach((d, i) => { d.style.transform = baseStackTransform(i); });
+  if (mixMs >= 900) {
+    cutReady = true;
+    hintEl.innerHTML = "Хорошо перемешала. Теперь <b>сними колоду</b> — коснись её один раз.";
+    haptic("pick"); sndTick();
+  } else {
+    hintEl.innerHTML = "Подержи чуть дольше — колода только начала слушаться.";
+  }
+}
+
+function doCut() {
+  if (cutting) return;
+  cutting = true; cutReady = false;
+  haptic("flip"); sndFlip();
+  const sts = Array.prototype.slice.call(stackEl.querySelectorAll(".st"));
+  const top = sts.slice(STACK_N / 2);
+  top.forEach((d, i) => {
+    d.style.transitionDuration = ".38s";
+    d.style.transform = `translate(96px, ${-8 - i * 2}px) rotate(10deg)`;
+  });
+  const cutAt = 20 + Math.floor(Math.random() * 38);
+  order = order.slice(cutAt).concat(order.slice(0, cutAt));
+  const r = stackEl.getBoundingClientRect();
+  sparks(r.left + r.width / 2, r.top + r.height / 2, 6);
+  setTimeout(() => {
+    top.forEach((d, i) => {
+      d.style.transform = `translate(1px, ${9 - i * 2}px) rotate(-2deg)`;
+    });
+    sndFlip();
+  }, 420);
+  setTimeout(() => {
+    document.body.classList.remove("phase-shuffle");
+    phase = "pick";
+    haptic("done");
+    renderDeck(true);
+    update();
+  }, 900);
+}
+
+stackEl.addEventListener("pointerdown", (e) => {
+  if (phase !== "shufflerite" || cutting) return;
+  e.preventDefault();
+  if (cutReady) { doCut(); return; }
+  holdStart = Date.now();
+  stackEl.classList.add("mixing");
+  mixTick();
+  mixT = setInterval(mixTick, 240);
+});
+window.addEventListener("pointerup", stopMix);
+window.addEventListener("pointercancel", stopMix);
 
 /* ---------- выбор карты ---------- */
 function pickCard(el) {
@@ -934,6 +1220,7 @@ function peekCard(holder) {
 function flipAll() {
   phase = "flip";
   update();
+  const stepMs = spread.n >= 7 ? 480 : 900; /* неделя: 7 карт, темп бодрее */
   picked.forEach((p, i) => {
     setTimeout(() => {
       haptic("flip"); sndFlip();
@@ -966,16 +1253,22 @@ function flipAll() {
           setTimeout(() => document.body.classList.add("done"), 200);
         }, 850);
       }
-    }, 400 + i * 900);
+    }, 400 + i * stepMs);
   });
 }
 
-/* ---------- отправка в бота (контракт НЕ МЕНЯТЬ) ---------- */
+/* ---------- отправка в бота ----------
+   payload v2: + q (вопрос из аппа) и topic (тема для классики).
+   Бот понимает и v1 (без q/topic), и v2 — обратная совместимость. */
 function send() {
-  const payload = JSON.stringify({
-    v: 1, spread: spreadKey,
+  const data = {
+    v: 2, spread: spreadKey,
     cards: picked.map(p => ({ id: p.id, rev: p.rev ? 1 : 0 })),
-  });
+  };
+  const q = qValue().slice(0, 400);
+  if (q) data.q = q;
+  if (spreadKey === "classic") data.topic = topicKey || "own";
+  const payload = JSON.stringify(data);
   if (tg && tg.disableClosingConfirmation) { try { tg.disableClosingConfirmation(); } catch (e) {} }
   if (inTelegram) {
     tg.sendData(payload); // бот получит web_app_data; Telegram закроет Mini App
@@ -995,17 +1288,25 @@ shuffleBtn.addEventListener("click", () => {
 
 /* ---------- состояния интерфейса ---------- */
 const HINTS = {
-  pick:  "Подумай о своём вопросе — и вытяни " +
-         (spread.n === 1 ? "<b>одну карту</b>" : "<b>" + spread.n + " карты</b>") +
-         ". Рука знает.",
+  ask:   "Сначала — вопрос. Карты любят конкретику.",
   ready: "Карты на столе. Готова?",
   flip:  "Смотрим…",
   done:  "Что это значит именно для тебя — <b>разбор придёт в чат</b>. Честно, как договаривались.",
 };
 
+function hintPick() {
+  const q = qValue();
+  if (q) {
+    const short = q.length > 60 ? q.slice(0, 57) + "…" : q;
+    return "Держи в голове: <b>«" + escHtml(short) + "»</b> — и вытяни " + cardsWord(spread.n) + ".";
+  }
+  return "Подумай о своём вопросе — и вытяни <b>" + cardsWord(spread.n) + "</b>. Рука знает.";
+}
+
 function update() {
   const full = picked.length >= spread.n;
-  hintEl.innerHTML = (phase === "pick" && full) ? HINTS.ready : HINTS[phase];
+  if (phase === "pick") hintEl.innerHTML = full ? HINTS.ready : hintPick();
+  else if (phase !== "shufflerite") hintEl.innerHTML = HINTS[phase] || "";
 
   counterEl.innerHTML = (phase === "pick" || phase === "flip")
     ? Array.from({ length: spread.n }, (_, i) =>
@@ -1016,7 +1317,11 @@ function update() {
   markNextSlot();
 
   mainBtn.classList.toggle("pulse", phase === "done");
-  if (phase === "pick" && full) {
+  if (phase === "ask") {
+    mainBtn.textContent = "К колоде 🃏";
+    mainBtn.disabled = !askValid();
+    mainBtn.onclick = startShuffleRite;
+  } else if (phase === "pick" && full) {
     mainBtn.textContent = "Перевернуть карты";
     mainBtn.disabled = false;
     mainBtn.onclick = flipAll;
@@ -1031,11 +1336,12 @@ function update() {
 
 $("demo-x").addEventListener("click", () => $("demo-note").style.display = "none");
 
-renderDeck();
+initAsk();
 update();
-/* v3: небула + звёзды, гравюрные эмблемы старших арканов, ритуал вскрытия
-   (поштучно, со звуком, хаптикой и сутью карты), подсветка следующего слота,
-   контракт с ботом без изменений */
+/* v4: экран вопроса и темы прямо в аппе (payload v2: q + topic), ритуал
+   «перемешай удержанием и сними колоду», расклад «Неделя» на 7 карт.
+   v3: небула + звёзды, гравюрные эмблемы старших арканов, ритуал вскрытия
+   (поштучно, со звуком, хаптикой и сутью карты), подсветка следующего слота */
 </script>
 </body>
 </html>
