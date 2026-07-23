@@ -172,7 +172,7 @@
     object-fit: cover; z-index: 3;
   }
   .face-gen { position: absolute; inset: 0; z-index: 1; }
-  .face-gen.rev { transform: rotate(180deg); }
+  /* перевёрнутые карты НЕ крутим — только подпись «перевёрнутая» */
   .sheen {
     position: absolute; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; border-radius: 10px;
   }
@@ -826,9 +826,8 @@ function idxHTML(card) {
 function faceHTML(card, rev) {
   return `<div class="facet face-art">
     <img class="art-img" src="${ART_DIR}${card.id}${ART_EXT}" alt=""
-         style="${rev ? "transform:rotate(180deg);" : ""}"
          onerror="this.remove()">
-    <div class="face-gen${rev ? " rev" : ""}">
+    <div class="face-gen">
       ${CORNERS_HTML}
       ${idxHTML(card)}
       ${centerArt(card)}
